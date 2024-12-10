@@ -12,4 +12,4 @@
 - `dotnet restore`
 - `dotnet watch`
 
-![](./screenshot.png)
+![](./screenshot.gif)
