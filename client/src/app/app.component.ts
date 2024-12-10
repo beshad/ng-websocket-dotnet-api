@@ -1,4 +1,3 @@
-import { RouterOutlet } from '@angular/router';
 import {
   Component,
   OnInit,
@@ -8,14 +7,18 @@ import {
   NgZone,
 } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { catchError, first, Subscription, tap } from 'rxjs';
+import { catchError, Subscription, tap } from 'rxjs';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import am5index from '@amcharts/amcharts5/index';
+
 import * as am5 from '@amcharts/amcharts5';
 import * as am5xy from '@amcharts/amcharts5/xy';
-import * as am5radar from '@amcharts/amcharts5/radar';
 import am5themes_Animated from '@amcharts/amcharts5/themes/Animated';
+
+interface Message {
+  value: number;
+  time: number;
+}
 
 @Component({
   selector: 'app-root',
@@ -37,7 +40,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private socket$!: WebSocketSubject<any>;
   private subscription!: Subscription;
 
-  data: { value: number; time: number }[] = [];
+  message: Message[] = [];
 
   initTime = (): number => {
     return Date.now();
@@ -70,12 +73,12 @@ export class AppComponent implements OnInit, OnDestroy {
     yAxis.children.push(
       am5.Label.new(this.root, {
         rotation: -90,
-        text: 'Random Value',
+        text: 'Random Server Value',
         y: am5.p50,
         centerX: am5.p50,
         centerY: am5.p50,
         fontSize: '20px',
-        // fill: am5.color(0xff3333),
+        fill: am5.color(0x000000),
       })
     );
 
@@ -99,9 +102,9 @@ export class AppComponent implements OnInit, OnDestroy {
     );
 
     this.xAxis.get('renderer').labels.template.setAll({
-      rotation: 90,
+      // rotation: 90,
       centerX: am5.p50,
-      centerY: am5.p100,
+      centerY: am5.p50,
       horizontalCenter: am5.p100,
       fill: am5.color(0x000000),
       fontSize: '12px',
@@ -115,7 +118,6 @@ export class AppComponent implements OnInit, OnDestroy {
         centerY: am5.p50,
         fontSize: '20px',
         fill: am5.color(0x000000),
-        // fill: am5.color(0xff3333),
       })
     );
 
@@ -133,8 +135,11 @@ export class AppComponent implements OnInit, OnDestroy {
         }),
       })
     );
-    this.xAxis.data.setAll(this.data);
-    this.series.data.setAll(this.data);
+    this.series.set('fill', am5.color(0xffffff));
+    this.series.set('stroke', am5.color(0x112233));
+
+    this.xAxis.data.setAll(this.message);
+    this.series.data.setAll(this.message);
 
     this.series.appear(1000);
     this.chart.appear(1000, 100);
@@ -147,17 +152,17 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  addData(data) {
+  addData(message: Message): void {
     const lastDataItem =
       this.series.dataItems[this.series.dataItems.length - 1];
     const lastValue = lastDataItem.get('valueY');
 
-    const { value } = data;
+    const { value } = message;
     if (this.series.dataItems.length > 10) {
       this.series.data.removeIndex(0);
     }
 
-    this.series.data.push(data);
+    this.series.data.push(message);
 
     const newDataItem = this.series.dataItems[this.series.dataItems.length - 1];
     newDataItem.animate({
@@ -167,17 +172,10 @@ export class AppComponent implements OnInit, OnDestroy {
       duration: 600,
       easing: am5.ease.linear,
     });
-
-    const animation = newDataItem.animate({
-      key: 'locationX',
-      to: 0.5,
-      from: -0.5,
-      duration: 600,
-    });
   }
 
   ngOnInit() {
-    this.data.push({
+    this.message.push({
       time: this.initTime(),
       value: 0,
     });

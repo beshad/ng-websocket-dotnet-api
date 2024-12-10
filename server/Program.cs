@@ -18,13 +18,13 @@ app.Map("/ws", async context =>
 
         while (webSocket.State == WebSocketState.Open)
         {
-            var timeData = new
+            Message message = new Message
             {
                 value = random.Next(1, 10),
                 time = (long)DateTime.Now.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds
             };
 
-            string jsonMessage = JsonConvert.SerializeObject(timeData);
+            string jsonMessage = JsonConvert.SerializeObject(message);
             var bytes = Encoding.UTF8.GetBytes(jsonMessage);
 
             await webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
@@ -39,3 +39,10 @@ app.Map("/ws", async context =>
 });
 
 app.Run();
+
+
+class Message
+{
+    public long time { get; set; }
+    public int value { get; set; }
+}
