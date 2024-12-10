@@ -1,0 +1,14 @@
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  h1 {
+    text-align: center;
+  }
+
+  figure {
+    width: 1000px;
+    height: 600px;
+  }
+}

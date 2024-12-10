@@ -21,14 +21,14 @@ app.Map("/ws", async context =>
             var timeData = new
             {
                 value = random.Next(1, 10),
-                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                time = (long)DateTime.Now.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds
             };
 
-            string jsonMessage = JsonConvert.SerializeObject(timeData);  // Serialize to JSON
-            var bytes = Encoding.UTF8.GetBytes(jsonMessage);  // Convert JSON string to byte array
+            string jsonMessage = JsonConvert.SerializeObject(timeData);
+            var bytes = Encoding.UTF8.GetBytes(jsonMessage);
 
             await webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-            await Task.Delay(3000); // Send data every 3 seconds
+            await Task.Delay(1000);
         }
     }
     else

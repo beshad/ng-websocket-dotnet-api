@@ -1,0 +1,18 @@
+/bin/
+/obj/
+*.user
+*.userosscache
+*.suo
+.vs/
+# appsettings.json
+# appsettings.Development.json
+node_modules/
+npm-debug.log
+yarn-error.log
+.vscode/
+dist/
+publish/
+out/
+*.mdf
+*.ldf
+Migrations

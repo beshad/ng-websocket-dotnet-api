@@ -8,7 +8,7 @@ import {
   NgZone,
 } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { catchError, Subscription, tap } from 'rxjs';
+import { catchError, first, Subscription, tap } from 'rxjs';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import am5index from '@amcharts/amcharts5/index';
@@ -32,11 +32,16 @@ export class AppComponent implements OnInit, OnDestroy {
   chart: am5xy.XYChart;
   series: am5xy.ColumnSeries;
   xAxis: any;
+  easing = am5.ease.linear;
 
   private socket$!: WebSocketSubject<any>;
   private subscription!: Subscription;
 
-  data: { value: number; time: string }[] = [];
+  data: { value: number; time: number }[] = [];
+
+  initTime = (): number => {
+    return Date.now();
+  };
 
   browserOnly(f: () => void) {
     if (isPlatformBrowser(this.platformId)) {
@@ -65,7 +70,7 @@ export class AppComponent implements OnInit, OnDestroy {
     yAxis.children.push(
       am5.Label.new(this.root, {
         rotation: -90,
-        text: 'value',
+        text: 'Random Value',
         y: am5.p50,
         centerX: am5.p50,
         centerY: am5.p50,
@@ -77,29 +82,34 @@ export class AppComponent implements OnInit, OnDestroy {
     yAxis.get('renderer').labels.template.set('fill', am5.color(0x000000));
 
     this.xAxis = this.chart.xAxes.push(
-      am5xy.CategoryAxis.new(this.root, {
+      am5xy.DateAxis.new(this.root, {
+        maxDeviation: 0.5,
+        extraMin: -0.1,
+        extraMax: 0.1,
+        groupData: false,
+        baseInterval: {
+          timeUnit: 'second',
+          count: 1,
+        },
         renderer: am5xy.AxisRendererX.new(this.root, {
-          minGridDistance: 10,
+          minorGridEnabled: true,
+          minGridDistance: 60,
         }),
-        maxDeviation: 0.3,
-        categoryField: 'time',
       })
     );
 
     this.xAxis.get('renderer').labels.template.setAll({
-      rotation: 90, 
+      rotation: 90,
       centerX: am5.p50,
-      centerY: am5.p100, 
-      horizontalCenter: am5.p100, 
-    });
-
-    this.xAxis.get('renderer').labels.template.setAll({
+      centerY: am5.p100,
+      horizontalCenter: am5.p100,
       fill: am5.color(0x000000),
       fontSize: '12px',
     });
+
     this.xAxis.children.push(
       am5.Label.new(this.root, {
-        text: 'time',
+        text: 'Server Time',
         x: am5.p50,
         centerX: am5.p50,
         centerY: am5.p50,
@@ -111,13 +121,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.series = this.chart.series.push(
       am5xy.ColumnSeries.new(this.root, {
-        name: 'Websocket example chart',
+        minBulletDistance: 10,
+        name: 'Websocket Example',
         xAxis: this.xAxis,
         yAxis: yAxis,
         valueYField: 'value',
-        sequencedInterpolation: true,
-        categoryXField: 'time',
+        valueXField: 'time',
         tooltip: am5.Tooltip.new(this.root, {
+          pointerOrientation: 'horizontal',
           labelText: '{valueY}',
         }),
       })
@@ -136,15 +147,47 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  addData(data) {
+    const lastDataItem =
+      this.series.dataItems[this.series.dataItems.length - 1];
+    const lastValue = lastDataItem.get('valueY');
+
+    const { value } = data;
+    if (this.series.dataItems.length > 10) {
+      this.series.data.removeIndex(0);
+    }
+
+    this.series.data.push(data);
+
+    const newDataItem = this.series.dataItems[this.series.dataItems.length - 1];
+    newDataItem.animate({
+      key: 'valueYWorking',
+      to: value,
+      from: lastValue,
+      duration: 600,
+      easing: am5.ease.linear,
+    });
+
+    const animation = newDataItem.animate({
+      key: 'locationX',
+      to: 0.5,
+      from: -0.5,
+      duration: 600,
+    });
+  }
+
   ngOnInit() {
+    this.data.push({
+      time: this.initTime(),
+      value: 0,
+    });
+
     this.socket$ = webSocket('ws://localhost:5000/ws');
 
     this.subscription = this.socket$
       .pipe(
         tap((data) => {
-          this.data.push(data);
-          this.xAxis.data.setAll(this.data);
-          this.series.data.setAll(this.data);
+          this.addData(data);
         }),
         catchError((error) => {
           console.error('WebSocket error:', error);
